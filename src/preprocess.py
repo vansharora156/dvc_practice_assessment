@@ -57,4 +57,5 @@ def main():
     print(f"Successfully processed data saved to {args.output}. Shape: {df_processed.shape}")
 
 if __name__ == '__main__':
+    print("[Task 4 Logger] Preprocessing execution initiated...")
     main()
