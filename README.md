@@ -1,5 +1,7 @@
 # DVC Class Assessment — MLOps Solutions & Pipeline Report
 
+**GitHub Repository:** [https://github.com/vansharora156/dvc_practice_assessment](https://github.com/vansharora156/dvc_practice_assessment)  
+**Author:** Vansh Arora (`vansharora156`)  
 **Topic:** Data Version Control (DVC) for Machine Learning Operations (MLOps)  
 **Assessment:** DVC Class Assessment — 15 MCQs + 5 Practical Tasks  
 
@@ -468,13 +470,16 @@ evaluate:
 ## How to Reproduce This Project
 
 ```bash
-# 1. Navigate to project directory
-cd DVC
+# 1. Clone the GitHub repository
+git clone https://github.com/vansharora156/dvc_practice_assessment.git
+cd dvc_practice_assessment
 
 # 2. Activate virtual environment
+python -m venv venv
 .\venv\Scripts\activate
+pip install dvc pandas scikit-learn numpy pyyaml
 
-# 3. Pull datasets and model artifacts from local DVC remote
+# 3. Pull datasets and model artifacts from DVC remote
 python -m dvc pull
 
 # 4. Reproduce the full pipeline
