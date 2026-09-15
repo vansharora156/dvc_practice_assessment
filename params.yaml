@@ -1,0 +1,12 @@
+preprocess:
+  input_path: "data/winequality.csv"
+  output_path: "data/processed.csv"
+
+train:
+  test_size: 0.2
+  random_state: 42
+  n_estimators: 100
+  max_depth: 5
+
+evaluate:
+  threshold: 0.5
