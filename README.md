@@ -1,215 +1,169 @@
-# DVC Class Assessment — MLOps Solutions & Pipeline Report
+# DVC Practice Assessment — MLOps Solutions & Pipeline Report
 
 **GitHub Repository:** [https://github.com/vansharora156/dvc_practice_assessment](https://github.com/vansharora156/dvc_practice_assessment)  
 **Author:** Vansh Arora (`vansharora156`)  
-**Topic:** Data Version Control (DVC) for Machine Learning Operations (MLOps)  
-**Assessment:** DVC Class Assessment — 15 MCQs + 5 Practical Tasks  
+**Topic:** Data Version Control (DVC) for Machine Learning Operations  
 
 ---
 
 ## Table of Contents
-1. [Project Overview & Architecture](#project-overview--architecture)
-2. [Directory Structure](#directory-structure)
-3. [Part A — MCQ Solutions](#part-a--mcq-solutions)
-4. [Part B — Practical Tasks Walkthrough](#part-b--practical-tasks-walkthrough)
-   - [Task 1: Track a Dataset Using DVC](#task-1--track-a-dataset-using-dvc)
-   - [Task 2: Configure a Local DVC Remote & Data Recovery Flow](#task-2--configure-a-local-dvc-remote--data-recovery-flow)
-   - [Task 3: Create a DVC Data Processing Pipeline](#task-3--create-a-dvc-data-processing-pipeline)
-   - [Task 4: Detect Changes and Reproduce the Pipeline (Report & Q&A)](#task-4--detect-changes-and-reproduce-the-pipeline-report--qa)
-   - [Task 5: Complete Mini ML Pipeline with DVC (Wine Quality)](#task-5--complete-mini-ml-pipeline-with-dvc-wine-quality)
-5. [Pipeline DAG Visualizations](#pipeline-dag-visualizations)
-6. [How to Reproduce This Project](#how-to-reproduce-this-project)
+- [Overview & Architecture](#overview--architecture)
+- [Repository Structure](#repository-structure)
+- [Part A — Multiple Choice Questions](#part-a--multiple-choice-questions)
+- [Part B — Practical Tasks Execution](#part-b--practical-tasks-execution)
+  - [Task 1: Tracking Data with DVC](#task-1-tracking-data-with-dvc)
+  - [Task 2: Local Remote & Recovery Workflow](#task-2-local-remote--recovery-workflow)
+  - [Task 3: Reproducible Data Pipeline](#task-3-reproducible-data-pipeline)
+  - [Task 4: Change Detection & Conceptual Q&A](#task-4-change-detection--conceptual-qa)
+  - [Task 5: End-to-End ML Pipeline & Tuning](#task-5-end-to-end-ml-pipeline--tuning)
+- [Pipeline DAG](#pipeline-dag)
+- [Reproduction Steps](#reproduction-steps)
 
 ---
 
-## Project Overview & Architecture
+## Overview & Architecture
 
-This repository contains the complete practical solutions and documentation for the **DVC Class Assessment**. It demonstrates the modern MLOps paradigm where:
-- **Git** tracks source code, pipeline definitions (`dvc.yaml`), dependency hashes (`dvc.lock`), lightweight metadata pointers (`.dvc`), and metric summaries.
-- **DVC (Data Version Control)** tracks large raw datasets, intermediate preprocessed data, trained model binaries, and caches execution stages to guarantee 100% reproducibility and prevent redundant computation.
+This repository presents a clean implementation of **Data Version Control (DVC)** integrated with **Git** to manage ML datasets, code dependencies, and model artifacts.
+
+### Key MLOps Principles Demonstrated:
+1. **Decoupled Versioning**: Git manages source scripts, configuration (`params.yaml`), stage manifests (`dvc.yaml`), and lockfiles (`dvc.lock`). DVC manages heavy raw datasets and binary models (`.pkl`).
+2. **Reproducibility**: Pipeline execution is recorded cryptographically in `dvc.lock`, enabling anyone to reproduce identical metrics with `dvc repro`.
+3. **Smart Caching**: DVC skips unchanged stages based on MD5 dependency hashing, drastically saving computation time.
 
 ```mermaid
 flowchart TD
-    subgraph Tasks1_to_4["Tasks 1-4: Titanic Data Preprocessing"]
-        T_RAW["data/titanic.csv<br/><i>(Tracked by DVC)</i>"] --> P_TITANIC["Stage: preprocess<br/><code>src/preprocess.py</code>"]
-        P_TITANIC --> T_OUT["data/processed.csv<br/><i>(DVC Output)</i>"]
+    subgraph Data_Prep["Data Preparation Stage"]
+        RAW["data/winequality.csv<br/><i>(DVC Tracked)</i>"] --> STAGE_PRE["Stage: preprocess<br/><code>src/preprocess.py</code>"]
+        STAGE_PRE --> PROC["data/processed.csv"]
     end
 
-    subgraph Task5["Task 5: Wine Quality End-to-End ML Pipeline"]
-        W_RAW["data/winequality.csv<br/><i>(Tracked by DVC)</i>"] --> P_WINE["Stage: preprocess<br/><code>src/preprocess.py</code>"]
-        P_WINE --> W_PROC["data/processed.csv"]
-        W_PROC --> TRAIN["Stage: train<br/><code>src/train.py</code>"]
-        PARAMS["params.yaml<br/><i>(test_size, random_state, n_estimators, max_depth)</i>"] --> TRAIN
-        TRAIN --> MODEL["models/model.pkl<br/><i>(RandomForest Model)</i>"]
-        TRAIN --> W_TEST["data/test.csv<br/><i>(Test Split)</i>"]
-        MODEL --> EVAL["Stage: evaluate<br/><code>src/evaluate.py</code>"]
-        W_TEST --> EVAL
-        EVAL --> METRICS["metrics.json<br/><i>(Accuracy, F1, Precision, Recall)</i>"]
+    subgraph Model_Training["Model Training & Evaluation Pipeline"]
+        PROC --> STAGE_TRAIN["Stage: train<br/><code>src/train.py</code>"]
+        PARAMS["params.yaml<br/><i>(Hyperparameters)</i>"] --> STAGE_TRAIN
+        STAGE_TRAIN --> MODEL["models/model.pkl"]
+        STAGE_TRAIN --> TEST["data/test.csv"]
+        MODEL --> STAGE_EVAL["Stage: evaluate<br/><code>src/evaluate.py</code>"]
+        TEST --> STAGE_EVAL
+        STAGE_EVAL --> METRICS["metrics.json<br/><i>(Accuracy, F1, Precision, Recall)</i>"]
     end
 ```
 
 ---
 
-## Directory Structure
+## Repository Structure
 
 ```text
 .
-├── .dvc/
-│   ├── .gitignore
-│   └── config                  # Configured local DVC remote storage
-├── dvc-storage/                # Task 2: Local DVC remote storage directory
+├── .dvc/                       # DVC project configurations & local cache
+├── dvc-storage/                # Local DVC remote storage directory (Task 2)
 ├── data/
-│   ├── .gitignore              # Automatically ignores raw & processed CSVs from Git
-│   ├── titanic.csv             # Titanic dataset (Tracked via DVC)
-│   ├── titanic.csv.dvc         # DVC metadata pointer (Committed to Git)
-│   ├── winequality.csv         # Wine quality dataset (Tracked via DVC)
-│   ├── winequality.csv.dvc     # DVC metadata pointer (Committed to Git)
-│   ├── processed.csv           # Cleaned dataset (DVC artifact)
-│   └── test.csv                # Evaluation test split (DVC artifact)
+│   ├── .gitignore              # Ignores large raw & intermediate CSVs
+│   ├── titanic.csv             # Titanic dataset
+│   ├── titanic.csv.dvc         # DVC metadata pointer file
+│   ├── winequality.csv         # Wine Quality dataset
+│   ├── winequality.csv.dvc     # DVC metadata pointer file
+│   ├── processed.csv           # Cleaned pipeline dataset (DVC output)
+│   └── test.csv                # Split test set (DVC output)
 ├── models/
-│   ├── .gitignore              # Ignores large model binary
-│   └── model.pkl               # Trained RandomForest classifier (DVC artifact)
+│   ├── .gitignore              # Ignores model binaries from Git
+│   └── model.pkl               # Serialized RandomForest model
 ├── src/
-│   ├── generate_datasets.py    # Benchmark dataset generator
-│   ├── preprocess.py           # Preprocessing script for Titanic & Wine data
-│   ├── train.py                # Hyperparameter-driven model training
-│   └── evaluate.py             # Metric evaluation script
-├── dvc.yaml                    # Multi-stage reproducible pipeline definition
-├── dvc.lock                    # Exact cryptographic hashes of inputs, outputs & params
-├── params.yaml                 # Tunable hyperparameters (train stage)
+│   ├── generate_datasets.py    # Synthetic benchmark dataset generator
+│   ├── preprocess.py           # Preprocessing script (Titanic & Wine support)
+│   ├── train.py                # Model training script
+│   └── evaluate.py             # Model evaluation & metrics calculator
+├── dvc.yaml                    # Multi-stage DVC pipeline definition
+├── dvc.lock                    # Dependency and artifact lockfile
+├── params.yaml                 # Configurable hyperparameters
 ├── metrics.json                # Model performance metrics output
-├── DVC_Assessment_Solutions.md  # Part A MCQ Answers & Task 4 Report
-└── README.md                   # Complete assessment report & deliverables
+├── DVC_Assessment_Solutions.md  # Detailed MCQ answers & Task 4 report
+└── README.md                   # Assessment summary & documentation
 ```
 
 ---
 
-## Part A — MCQ Solutions
+## Part A — Multiple Choice Questions
 
-The verified answers to all 15 multiple-choice questions from Part A:
+Below is the summary of verified solutions for Part A (detailed explanations are available in [`DVC_Assessment_Solutions.md`](DVC_Assessment_Solutions.md)):
 
-| Q# | Question Summary | Correct Option | Explanation |
+| # | Question Summary | Answer | Core Concept |
 |---|---|---|---|
-| **1** | Primary purpose of DVC | **B** | To version and manage data and ML pipelines |
-| **2** | Command to initialize DVC | **B** | `dvc init` |
-| **3** | Directory created when DVC is initialized | **B** | `.dvc` |
-| **4** | Command to track a dataset with DVC | **B** | `dvc add data.csv` |
-| **5** | What happens when running `dvc add data.csv` | **C** | A `.dvc` metadata file is created and raw data is added to `.gitignore` |
-| **6** | Why store large datasets outside Git | **B** | Large files make Git repositories heavy and degrade clone/pull performance |
-| **7** | File containing metadata for tracked file | **B** | `data.csv.dvc` |
-| **8** | Command to download data from DVC remote | **B** | `dvc pull` |
-| **9** | Command to upload data to DVC remote | **B** | `dvc push` |
-| **10** | Purpose of a DVC remote | **B** | To store DVC-tracked datasets, models, and intermediate artifacts |
-| **11** | File used to define a reproducible pipeline | **B** | `dvc.yaml` |
-| **12** | Command used to create/update pipeline stage | **A** | `dvc stage add` |
-| **13** | Role of `dvc.lock` in DVC | **C** | Records exact versions and cryptographic hashes of pipeline deps and outs |
-| **14** | Command used to reproduce a pipeline | **A** | `dvc reproduce` (or `dvc repro`) |
-| **15** | Key advantage of combining Git and DVC | **A** | Git manages code while DVC manages large data and models |
-
-*(Also mirrored in [`DVC_Assessment_Solutions.md`](DVC_Assessment_Solutions.md))*
+| **1** | Primary purpose of DVC | **B** | Version data and manage ML pipelines |
+| **2** | Initialize DVC in a repository | **B** | `dvc init` |
+| **3** | Directory created upon DVC initialization | **B** | `.dvc` |
+| **4** | Command to track a file in DVC | **B** | `dvc add data.csv` |
+| **5** | Output of `dvc add data.csv` | **C** | Generates `.dvc` pointer and updates `.gitignore` |
+| **6** | Reason for keeping large files off Git | **B** | Prevents Git repo bloat and performance loss |
+| **7** | File committed to Git for data tracking | **B** | `data.csv.dvc` |
+| **8** | Download dataset from DVC remote | **B** | `dvc pull` |
+| **9** | Upload dataset to DVC remote | **B** | `dvc push` |
+| **10** | Role of a DVC remote | **B** | Store DVC-tracked datasets and models |
+| **11** | File for defining pipeline stages | **B** | `dvc.yaml` |
+| **12** | Command to add a stage to pipeline | **A** | `dvc stage add` |
+| **13** | Function of `dvc.lock` | **C** | Records exact dependency & output MD5 hashes |
+| **14** | Execute/reproduce a pipeline | **A** | `dvc reproduce` / `dvc repro` |
+| **15** | Advantage of Git + DVC | **A** | Code in Git, data/models in DVC |
 
 ---
 
-## Part B — Practical Tasks Walkthrough
+## Part B — Practical Tasks Execution
 
-### Task 1 — Track a Dataset Using DVC
+### Task 1: Tracking Data with DVC
 
-#### Objective
-Initialize DVC and track the Titanic dataset (`titanic.csv`) separately from Git.
+**Goal:** Initialize Git and DVC, then track `data/titanic.csv` without committing raw data to Git.
 
-#### Commands Executed
 ```bash
-# 1. Initialize Git and DVC repositories
+# Initialize project tracking
 git init
-dvc init
+python -m dvc init
 
-# 2. Generate benchmark Titanic dataset
+# Generate data and track with DVC
 python src/generate_datasets.py
+python -m dvc add data/titanic.csv
 
-# 3. Track dataset using DVC
-dvc add data/titanic.csv
-
-# 4. Stage and commit DVC metadata into Git
+# Commit DVC pointer to Git
 git add .gitignore data/titanic.csv.dvc
-git commit -m "Task 1: Initialized DVC and tracked titanic.csv"
+git commit -m "Track titanic.csv with DVC"
 ```
 
-#### Verification that Git Tracks Metadata, Not the Raw Dataset
-1. **Inspecting `data/titanic.csv.dvc`:**
-   ```yaml
-   outs:
-   - md5: 1c51c342be226780d459d205830307b2
-     size: 11368
-     hash: md5
-     path: titanic.csv
-   ```
-2. **Inspecting `data/.gitignore`:**
-   DVC automatically updated `data/.gitignore` with `/titanic.csv`.
-3. **Verifying Git tracking:**
-   ```bash
-   git status
-   ```
-   **Output:** `nothing to commit, working tree clean`. Git tracks only `data/titanic.csv.dvc` (97 bytes) while ignoring the raw `titanic.csv` dataset.
+**Verification:**
+- DVC created `data/titanic.csv.dvc` containing the MD5 checksum (`1c51c342be226780d459d205830307b2`).
+- DVC automatically updated `data/.gitignore` to exclude `data/titanic.csv` from Git commits.
 
 ---
 
-### Task 2 — Configure a Local DVC Remote & Data Recovery Flow
+### Task 2: Local Remote & Recovery Workflow
 
-#### Objective
-Configure a local directory remote storage and verify the complete data lifecycle:
-$$\text{Dataset} \longrightarrow \text{DVC} \longrightarrow \text{Remote Storage} \longrightarrow \text{Delete Local Copy} \longrightarrow \text{Recover via DVC}$$
+**Goal:** Configure a local DVC remote, push tracked data, delete the local dataset, and restore it via DVC.
 
-#### Commands Executed
 ```bash
-# 1. Create a local remote directory
+# Set up local directory remote
 mkdir dvc-storage
+python -m dvc remote add -d localremote dvc-storage
 
-# 2. Add local remote to DVC configuration
-dvc remote add -d localremote dvc-storage
-git add .dvc/config
-git commit -m "Configure local DVC remote"
+# Push cached data to remote
+python -m dvc push
 
-# 3. Push dataset to remote storage
-dvc push
-
-# 4. Simulate catastrophic local data loss
+# Delete local dataset and recover
 Remove-Item data/titanic.csv
-Test-Path data/titanic.csv # Returns False
-
-# 5. Recover the dataset from remote storage
-dvc pull
-Test-Path data/titanic.csv # Returns True
+python -m dvc pull
 ```
 
-#### Execution Evidence
-- **DVC push output:**
-  ```text
-  1 file pushed
-  ```
-- **File deletion & recovery test:**
-  ```powershell
-  Remove-Item data\titanic.csv
-  python -m dvc pull
-  ```
-  **Result:**
-  ```text
-  A       data\titanic.csv
-  1 file added
-  ```
-- **Verification:** `Test-Path data\titanic.csv` returned `True`. The file was fully recovered with intact MD5 hash (`1c51c342be226780d459d205830307b2`).
+**Result:**
+- `dvc push` uploaded 1 file to `dvc-storage`.
+- After deleting `data/titanic.csv`, running `python -m dvc pull` restored the dataset intact.
 
 ---
 
-### Task 3 — Create a DVC Data Processing Pipeline
+### Task 3: Reproducible Data Pipeline
 
-#### Objective
-Build a reproducible preprocessing stage for Titanic data that handles missing values, removes redundant columns, encodes categorical variables, and outputs `data/processed.csv`.
+**Goal:** Create a pipeline stage in `dvc.yaml` to execute `src/preprocess.py` and produce `data/processed.csv`.
 
-#### Pipeline Stage Definition (`dvc.yaml`)
+**Stage Configuration (`dvc.yaml` snippet):**
 ```yaml
 stages:
   preprocess:
-    cmd: python src/preprocess.py --input data/titanic.csv --output data/processed.csv
+    cmd: .\venv\Scripts\python src/preprocess.py --input data/titanic.csv --output data/processed.csv
     deps:
       - data/titanic.csv
       - src/preprocess.py
@@ -217,227 +171,97 @@ stages:
       - data/processed.csv
 ```
 
-#### Preprocessing Logic (`src/preprocess.py`)
-- Reads `data/titanic.csv`
-- Drops uninformative identifiers: `PassengerId`, `Name`, `Ticket`, `Cabin`
-- Imputes missing numerical values (`Age`, `Fare`) with median
-- Imputes missing categorical values (`Embarked`) with mode
-- Encodes categorical feature `Sex` (`male: 0, female: 1`)
-- Applies dummy encoding to `Embarked` (`drop_first=True`)
-- Saves clean dataset to `data/processed.csv`
-
-#### Running the Pipeline
+**Execution:**
 ```bash
-dvc repro
+python -m dvc repro
 ```
-**Output:**
-```text
-Running stage 'preprocess':
-> python src/preprocess.py --input data/titanic.csv --output data/processed.csv
-Reading raw data from data/titanic.csv...
-Successfully processed data saved to data/processed.csv. Shape: (200, 9)
-Generating lock file 'dvc.lock'
-Updating lock file 'dvc.lock'
-```
-Both `dvc.yaml` and `dvc.lock` were successfully generated and committed to Git.
+DVC executed `preprocess`, generated `data/processed.csv` (200 rows, 9 columns), and wrote `dvc.lock`.
 
 ---
 
-### Task 4 — Detect Changes and Reproduce the Pipeline (Report & Q&A)
+### Task 4: Change Detection & Conceptual Q&A
 
-#### Objective
-Demonstrate how DVC detects changes across **code**, **data**, and **parameters**, executing only the necessary stages.
+**Goal:** Test how DVC detects modifications in dependencies and re-executes affected stages.
 
-#### Experiment 1: Modifying Preprocessing Code
-1. Added logging statements to `src/preprocess.py`.
-2. Executed `dvc status`:
-   ```text
-   preprocess:
-       changed deps:
-           modified:           src\preprocess.py
-   ```
-3. Executed `dvc repro`:
-   ```text
-   Running stage 'preprocess':
-   > python src/preprocess.py --input data/titanic.csv --output data/processed.csv
-   [Task 4 Logger] Preprocessing execution initiated...
-   Reading raw data from data/titanic.csv...
-   Successfully processed data saved to data/processed.csv. Shape: (200, 9)
-   Updating lock file 'dvc.lock'
-   ```
-   **Observation:** Only the `preprocess` stage re-executed.
+1. **Code Modification Test:** Added logging to `src/preprocess.py`. Running `dvc status` showed `modified: src/preprocess.py`. Executing `dvc repro` re-ran the stage.
+2. **Data Modification Test:** Added a record to `data/titanic.csv` and ran `dvc add data/titanic.csv`. `dvc status` flagged `modified: data/titanic.csv`. Running `dvc repro` processed the updated dataset (201 rows).
 
-#### Experiment 2: Modifying Input Dataset
-1. Appended a row to `data/titanic.csv` and re-added with `dvc add data/titanic.csv`.
-2. Executed `dvc status`:
-   ```text
-   preprocess:
-       changed deps:
-           modified:           data\titanic.csv
-   ```
-3. Executed `dvc repro`:
-   ```text
-   Running stage 'preprocess':
-   > python src/preprocess.py --input data/titanic.csv --output data/processed.csv
-   [Task 4 Logger] Preprocessing execution initiated...
-   Reading raw data from data/titanic.csv...
-   Successfully processed data saved to data/processed.csv. Shape: (201, 9)
-   Updating lock file 'dvc.lock'
-   ```
-   **Observation:** DVC recognized that the dataset MD5 changed, triggered the stage, and processed the updated row count (201).
+#### Conceptual Q&A Summary:
+
+* **Why does DVC re-execute a stage?**  
+  DVC compares the current MD5 hashes of all declared dependencies (`deps`), parameters (`params`), and code files against the hashes recorded in `dvc.lock`. If any hash differs, the stage is considered stale and re-run.
+
+* **What information is stored in `dvc.lock`?**  
+  `dvc.lock` stores stage commands, file paths, exact MD5 content hashes for inputs and outputs, and parameter values used during the run.
+
+* **What happens if neither input data nor processing code changes?**  
+  `dvc status` reports `Data and pipelines are up to date`, and `dvc repro` skips stage execution, using cached outputs.
+
+* **Why is reproducibility important in ML projects?**  
+  ML outputs depend on code, data, hyperparameters, and environment. Tracking all four components guarantees that models can be audited, debugged, and recreated reliably.
 
 ---
 
-#### Comprehensive Q&A
+### Task 5: End-to-End ML Pipeline & Tuning
 
-##### Q1: Why did DVC decide to execute the stage again?
-> **Answer:**  
-> DVC tracks every stage by computing cryptographic hashes (MD5) of all declared dependencies (`deps`: source code files, input data files, parameters). When `dvc repro` is triggered:
-> 1. DVC computes current MD5 hashes for all declared inputs.
-> 2. It compares these hashes against the recorded hashes stored in `dvc.lock`.
-> 3. If any hash differs (due to modified code, updated data, or changed hyperparameter values), DVC flags the stage as **stale** and executes its command. Downstream stages that depend on that stage's outputs are also re-executed.
+**Goal:** Build a 3-stage ML pipeline (`preprocess` → `train` → `evaluate`) for Wine Quality prediction, tune hyperparameters, and track metrics.
 
-##### Q2: What information is stored in `dvc.lock`?
-> **Answer:**  
-> `dvc.lock` is DVC's state manifest. For each stage, it records:
-> - **Stage Command (`cmd`)**: The exact CLI command executed.
-> - **Dependencies (`deps`)**: Relative file paths, hash algorithm (`md5`), the exact hash string, and file size in bytes.
-> - **Parameters (`params`)**: The resolved key-value pairs from `params.yaml` used during that run.
-> - **Outputs (`outs`)**: Relative path, hash algorithm (`md5`), output hash string, and file size in bytes.  
-> It acts as the immutable cryptographic "receipt" linking specific versions of code, data, and parameters to specific outputs.
-
-##### Q3: What happens if neither the input data nor processing code changes?
-> **Answer:**  
-> If no dependencies or parameters have changed:
-> - `dvc status` outputs: `Data and pipelines are up to date.`
-> - `dvc repro` detects that all hashes match `dvc.lock`, logs `Stage '<stage_name>' didn't change, skipping`, and finishes immediately without running any commands.  
-> This acts as an intelligent build cache, saving compute time and resources.
-
-##### Q4: Why is reproducibility important in ML projects?
-> **Answer:**  
-> Unlike traditional software engineering where outputs depend only on source code, Machine Learning outputs are a joint function of:
-> $$\text{Model Artifact} = f(\text{Code}, \text{Data}, \text{Hyperparameters}, \text{Environment})$$
-> Reproducibility is vital because:
-> 1. **Auditability & Compliance:** Regulations (e.g., healthcare, finance) require proving how a model was trained and on what exact dataset version.
-> 2. **Debugging & Regression Tracking:** When model accuracy degrades in production, teams must be able to roll back to the exact data + code state that produced the previous model.
-> 3. **Collaboration:** Eliminates the "works on my machine" dilemma by enabling teammates to pull the exact data version and re-run pipelines deterministically.
-> 4. **Preventing Data Leakage & Drift:** Ensures experiments are compared under fair, identical conditions.
-
----
-
-### Task 5 — Complete Mini ML Pipeline with DVC (Wine Quality)
-
-#### Objective
-Build a complete 3-stage reproducible machine learning pipeline predicting wine quality:
-$$\text{Raw Data} \longrightarrow \text{Preprocessing} \longrightarrow \text{Train/Test Split \& Model Training} \longrightarrow \text{Evaluation} \longrightarrow \text{metrics.json}$$
-
-#### Pipeline Stages in `dvc.yaml`
+#### Full `dvc.yaml` Definition:
 ```yaml
 stages:
   preprocess:
-    cmd: python src/preprocess.py --input data/winequality.csv --output data/processed.csv
+    cmd: .\venv\Scripts\python src/preprocess.py --input data/winequality.csv --output data/processed.csv
     deps:
-      - data/winequality.csv
-      - src/preprocess.py
+    - data/winequality.csv
+    - src/preprocess.py
     outs:
-      - data/processed.csv
-
+    - data/processed.csv
   train:
-    cmd: python src/train.py
+    cmd: .\venv\Scripts\python src/train.py
     deps:
-      - data/processed.csv
-      - src/train.py
+    - data/processed.csv
+    - src/train.py
     params:
-      - train.max_depth
-      - train.n_estimators
-      - train.random_state
-      - train.test_size
+    - train.max_depth
+    - train.n_estimators
+    - train.random_state
+    - train.test_size
     outs:
-      - data/test.csv
-      - models/model.pkl
-
+    - data/test.csv
+    - models/model.pkl
   evaluate:
-    cmd: python src/evaluate.py
+    cmd: .\venv\Scripts\python src/evaluate.py
     deps:
-      - data/test.csv
-      - models/model.pkl
-      - src/evaluate.py
+    - data/test.csv
+    - models/model.pkl
+    - src/evaluate.py
     metrics:
-      - metrics.json:
-          cache: false
+    - metrics.json:
+        cache: false
 ```
 
-#### Hyperparameters (`params.yaml`)
-```yaml
-preprocess:
-  input_path: "data/winequality.csv"
-  output_path: "data/processed.csv"
+#### Hyperparameter Tuning Experiment (`params.yaml`):
 
-train:
-  test_size: 0.2
-  random_state: 42
-  n_estimators: 150
-  max_depth: 7
+| Parameter | Initial Value | Tuned Value |
+|---|---|---|
+| `train.n_estimators` | `100` | `150` |
+| `train.max_depth` | `5` | `7` |
 
-evaluate:
-  threshold: 0.5
+Running `dvc status` detected changed parameter dependencies. Re-running `dvc repro` updated model training and evaluation:
+
+#### Metrics Comparison (`dvc metrics show`):
+
+```text
+Path          accuracy    f1_score    precision    recall
+metrics.json  0.6667      0.5         0.7143       0.3846
 ```
-
-#### Evaluation Metrics (`metrics.json`)
-```json
-{
-    "accuracy": 0.6667,
-    "f1_score": 0.5,
-    "precision": 0.7143,
-    "recall": 0.3846
-}
-```
-
-#### Pipeline Inspection Commands & Terminal Outputs
-
-1. **Pipeline Execution (`dvc repro`):**
-   ```text
-   'data\winequality.csv.dvc' didn't change, skipping
-   Stage 'preprocess' didn't change, skipping
-   Running stage 'train':
-   > python src/train.py
-   Model trained successfully and saved to models/model.pkl
-   Test split saved to data/test.csv with 60 samples
-   Updating lock file 'dvc.lock'
-
-   Running stage 'evaluate':
-   > python src/evaluate.py
-   Evaluation complete. Metrics saved to metrics.json: {'accuracy': 0.6667, 'f1_score': 0.5, 'precision': 0.7143, 'recall': 0.3846}
-   Updating lock file 'dvc.lock'
-   ```
-
-2. **Pipeline Status (`dvc status`):**
-   ```text
-   Data and pipelines are up to date.
-   ```
-
-3. **Metrics Display (`dvc metrics show`):**
-   ```text
-   Path          accuracy    f1_score    precision    recall
-   metrics.json  0.6667      0.5         0.7143       0.3846
-   ```
-
-4. **Demonstrating Parameter Modification Detection:**
-   When `train.n_estimators` in `params.yaml` was modified from 100 to 150 and `max_depth` from 5 to 7:
-   ```text
-   train:
-       changed deps:
-           params.yaml:
-               modified: train.max_depth
-               modified: train.n_estimators
-   ```
-   Running `dvc repro` cleanly skipped `preprocess` (cached), executing only `train` and `evaluate`, resulting in an accuracy increase from **0.6167** to **0.6667**.
 
 ---
 
-## Pipeline DAG Visualizations
+## Pipeline DAG
 
-### Text DAG (`dvc dag`)
+Pipeline stage topology generated via `python -m dvc dag`:
+
 ```text
 +--------------------------+ 
 | data\winequality.csv.dvc | 
@@ -467,25 +291,27 @@ evaluate:
 
 ---
 
-## How to Reproduce This Project
+## Reproduction Steps
+
+To clone and reproduce this repository locally:
 
 ```bash
-# 1. Clone the GitHub repository
+# 1. Clone repository
 git clone https://github.com/vansharora156/dvc_practice_assessment.git
 cd dvc_practice_assessment
 
-# 2. Activate virtual environment
+# 2. Set up virtual environment & install dependencies
 python -m venv venv
 .\venv\Scripts\activate
 pip install dvc pandas scikit-learn numpy pyyaml
 
-# 3. Pull datasets and model artifacts from DVC remote
+# 3. Pull tracked data from DVC storage
 python -m dvc pull
 
-# 4. Reproduce the full pipeline
+# 4. Reproduce the pipeline
 python -m dvc repro
 
-# 5. Inspect evaluation metrics and DAG structure
+# 5. View metrics and DAG
 python -m dvc metrics show
 python -m dvc dag
 ```
