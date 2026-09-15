@@ -1,13 +1,13 @@
 schema: '2.0'
 stages:
   preprocess:
-    cmd: .\venv\Scripts\python src/preprocess.py --input data/titanic.csv 
+    cmd: .\venv\Scripts\python src/preprocess.py --input data/winequality.csv 
       --output data/processed.csv
     deps:
-    - path: data/titanic.csv
+    - path: data/winequality.csv
       hash: md5
-      md5: 1c51c342be226780d459d205830307b2
-      size: 11368
+      md5: 7f73d809294980dfe5a2c32ea531d50d
+      size: 18551
     - path: src/preprocess.py
       hash: md5
       md5: c03eaa9d7bd42d439272924f35d1d5b5
@@ -15,5 +15,51 @@ stages:
     outs:
     - path: data/processed.csv
       hash: md5
-      md5: 6a83e13fe5a6647ef8a7975b67abc7bd
-      size: 6642
+      md5: d6d88b4e1431a9d8078e3376ded5b4b0
+      size: 18550
+  train:
+    cmd: .\venv\Scripts\python src/train.py
+    deps:
+    - path: data/processed.csv
+      hash: md5
+      md5: d6d88b4e1431a9d8078e3376ded5b4b0
+      size: 18550
+    - path: src/train.py
+      hash: md5
+      md5: 89fe4d5cb43e8ec865904e565cd67ba8
+      size: 1643
+    params:
+      params.yaml:
+        train.max_depth: 7
+        train.n_estimators: 150
+        train.random_state: 42
+        train.test_size: 0.2
+    outs:
+    - path: data/test.csv
+      hash: md5
+      md5: 967a5ce55c07554c056e09b0ac85298e
+      size: 3830
+    - path: models/model.pkl
+      hash: md5
+      md5: d432f3a732ce42811ccaf1ead388625e
+      size: 751424
+  evaluate:
+    cmd: .\venv\Scripts\python src/evaluate.py
+    deps:
+    - path: data/test.csv
+      hash: md5
+      md5: 967a5ce55c07554c056e09b0ac85298e
+      size: 3830
+    - path: models/model.pkl
+      hash: md5
+      md5: d432f3a732ce42811ccaf1ead388625e
+      size: 751424
+    - path: src/evaluate.py
+      hash: md5
+      md5: 2dfad82548d0bd7378d9daf4e9e4d097
+      size: 1291
+    outs:
+    - path: metrics.json
+      hash: md5
+      md5: b00f7000b20df1cf42d16c69278f589f
+      size: 99
