@@ -1,0 +1,19 @@
+schema: '2.0'
+stages:
+  preprocess:
+    cmd: .\venv\Scripts\python src/preprocess.py --input data/titanic.csv 
+      --output data/processed.csv
+    deps:
+    - path: data/titanic.csv
+      hash: md5
+      md5: 6fd3171e1def2418c37e4bac71e7b2d2
+      size: 11309
+    - path: src/preprocess.py
+      hash: md5
+      md5: b6aa967aa5ae5d8069be4606b7075402
+      size: 2118
+    outs:
+    - path: data/processed.csv
+      hash: md5
+      md5: ced985aee0ca6a5e18e6bf718083cf6c
+      size: 6610

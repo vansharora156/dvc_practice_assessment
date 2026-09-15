@@ -1,0 +1,9 @@
+stages:
+  preprocess:
+    cmd: .\venv\Scripts\python src/preprocess.py --input data/titanic.csv 
+      --output data/processed.csv
+    deps:
+    - data/titanic.csv
+    - src/preprocess.py
+    outs:
+    - data/processed.csv
